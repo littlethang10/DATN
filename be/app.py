@@ -1,6 +1,7 @@
 import json, os, sqlite3, subprocess, re, math, datetime, base64
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlsplit, parse_qs
+from report_export import build_workbook
 
 DB = os.environ.get('DB_PATH', '/data/gateview.db')
 annotated_frames = {}
@@ -178,6 +179,23 @@ class Handler(BaseHTTPRequestHandler):
         return value
     def do_GET(self):
         path = urlsplit(self.path).path
+        if path == '/api/visits/export.xlsx':
+            query = urlsplit(self.path).query
+            try:
+                report = visit_report(query)
+                with db() as conn:
+                    cameras = [dict(row) for row in conn.execute('SELECT id,name,code FROM cameras')]
+                data = build_workbook(report, query, cameras)
+            except (ValueError, OverflowError):
+                return self.reply(400, {'error': 'Khoảng thời gian hoặc bộ lọc không hợp lệ (tối đa 10 năm).'})
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+            self.send_header('Content-Disposition', 'attachment; filename="gateview-bao-cao.xlsx"')
+            self.send_header('Cache-Control', 'no-store')
+            self.send_header('Content-Length', str(len(data)))
+            self.end_headers()
+            self.wfile.write(data)
+            return
         if path == '/api/visits':
             try: return self.reply(200, visit_report(urlsplit(self.path).query))
             except (ValueError, OverflowError): return self.reply(400, {'error': 'Khoảng thời gian hoặc bộ lọc không hợp lệ (tối đa 10 năm).'})

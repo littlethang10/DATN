@@ -1,6 +1,6 @@
 const content = document.querySelector('.content');
 content.innerHTML = `
-  <div class="heading"><div><h1>Lịch sử ra / vào</h1><p>Tra cứu lượt lưu trú theo biển số và xuất báo cáo</p></div><button id="export" class="btn primary" type="button">⇩ &nbsp;Xuất báo cáo CSV</button></div>
+  <div class="heading"><div><h1>Lịch sử ra / vào</h1><p>Tra cứu lượt lưu trú theo biển số và xuất báo cáo</p></div><button id="export" class="btn primary" type="button">⇩ &nbsp;Xuất báo cáo Excel</button></div>
   <form id="filters" class="filter-card filters"><div class="filter-grid">
     <div class="field"><label for="plate">Tìm kiếm biển số</label><input id="plate" class="input" placeholder="Nhập biển số xe..."></div>
     <div class="field"><label for="start">Từ ngày</label><input id="start" class="input" type="date" required></div>
@@ -58,7 +58,7 @@ function renderSummaryPage() {
   const tbody=$('summary-rows'); tbody.replaceChildren();
   const sort=$('summary-sort').value, key=sort==='duration'?'duration_seconds':sort;
   const items=[...report.summary].sort((a,b)=>sort==='plate' ? a.plate.localeCompare(b.plate) : b[key]-a[key] || a.plate.localeCompare(b.plate));
-  for (const item of items.slice(summaryPage*pageSize,(summaryPage+1)*pageSize)) { const row=tbody.insertRow(); const button=element('button',item.plate); button.type='button'; button.className='plate-detail'; button.setAttribute('aria-label',`Xem chi tiết biển số ${item.plate}`); button.onclick=()=>showVehicle(item.plate); row.insertCell().append(button); for (const value of [item.entries,item.exits,item.complete,duration(item.duration_seconds),duration(item.complete ? item.duration_seconds/item.complete : null),item.open,item.review]) row.insertCell().textContent=value; const details=element('button','Xem chi tiết →'); details.type='button'; details.className='view-details'; details.setAttribute('aria-label',`Xem chi tiết và ảnh xe ${item.plate}`); details.onclick=()=>showVehicle(item.plate); row.insertCell().append(details); }
+  for (const item of items.slice(summaryPage*pageSize,(summaryPage+1)*pageSize)) { const row=tbody.insertRow(); const button=element('button',item.plate); button.type='button'; button.className='plate-detail'; button.setAttribute('aria-label',`Xem chi tiết biển số ${item.plate}`); button.onclick=()=>showVehicle(item.plate); row.insertCell().append(button); for (const value of [item.entries,item.exits,item.complete,duration(item.complete ? item.duration_seconds : null),duration(item.complete ? item.duration_seconds/item.complete : null),item.open,item.review]) row.insertCell().textContent=value; const details=element('button','Xem chi tiết →'); details.type='button'; details.className='view-details'; details.setAttribute('aria-label',`Xem chi tiết và ảnh xe ${item.plate}`); details.onclick=()=>showVehicle(item.plate); row.insertCell().append(details); }
   if (!items.length) emptyRow(tbody,9,'Không có dữ liệu phù hợp.');
   $('summary-page-info').textContent=items.length ? `Hiển thị ${summaryPage*pageSize+1}–${Math.min((summaryPage+1)*pageSize,items.length)} / ${items.length} biển số` : 'Không có biển số';
   renderPagination($('summary-pages'),summaryPage,items.length,next=>{summaryPage=next;renderSummaryPage();});
@@ -134,13 +134,26 @@ async function load() {
 $('filters').onsubmit=event=>{event.preventDefault();load();}; $('reset').onclick=()=>{reset();load();};
 $('plate').addEventListener('input',()=>{ clearTimeout(searchTimer); requestVersion++; $('export').disabled=true; $('message').textContent='Đang chờ tìm kiếm…'; searchTimer=setTimeout(load,350); });
 function renderChips(){ const chips=$('filter-chips');chips.replaceChildren(); for(const id of filterIds){const value=appliedFilters.get(id);if(!value||value===defaults[id])continue;const label=document.querySelector(`label[for="${id}"]`) || $(id).closest('label');const name=label ? label.childNodes[0].textContent.trim() : id;const selected=$(id).tagName==='SELECT' ? $(id).selectedOptions[0]?.textContent : value;const chip=element('button',`${name}: ${selected} ×`);chip.type='button';chip.className='filter-chip';chip.onclick=()=>{$(id).value=defaults[id];load();};chips.append(chip);} }
-function csvCell(value) { let text=String(value ?? ''); if (/^[\s]*[=+\-@\t\r]/.test(text)) text="'"+text; return `"${text.replaceAll('"','""')}"`; }
-$('export').onclick=()=>{
-  if(!report) return;
-  const rows=[['BÁO CÁO GATEVIEW'],['Thời điểm xuất',formatTime(new Date().toISOString())],['Bộ lọc',appliedFilters.toString()],[],['TỔNG HỢP THEO BIỂN SỐ'],['Biển số','Lượt vào','Lượt ra','Hoàn chỉnh','Tổng thời gian','Trung bình','Chưa ghi nhận ra','Cần kiểm tra']];
-  for(const s of report.summary) rows.push([s.plate,s.entries,s.exits,s.complete,duration(s.duration_seconds),duration(s.complete ? s.duration_seconds/s.complete : null),s.open,s.review]);
-  rows.push([],['CHI TIẾT LƯỢT LƯU TRÚ'],['Biển số','Thời gian vào','Camera vào','Thời gian ra','Camera ra','Thời gian lưu trú','Trạng thái','Mã sự kiện vào','Mã sự kiện ra']);
-  for(const v of report.visits) rows.push([v.plate,formatTime(v.entry?.created_at),v.entry?.camera_name,formatTime(v.exit?.created_at),v.exit?.camera_name,duration(v.duration_seconds),labels[v.status],v.entry?.id,v.exit?.id]);
-  const csv='\ufeff'+rows.map(row=>row.map(csvCell).join(',')).join('\r\n'); const url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'})); const link=document.createElement('a'); link.href=url; link.download=`gateview-luot-xe-${appliedFilters.get('start')}-${appliedFilters.get('end')}.csv`; link.click(); setTimeout(()=>URL.revokeObjectURL(url),1000);
+let exporting = false;
+$('export').onclick=async()=>{
+  if(!report || !appliedFilters || exporting) return;
+  const filters = new URLSearchParams(appliedFilters), version = requestVersion;
+  exporting = true; $('export').disabled = true;
+  $('export').textContent = 'Đang xuất Excel…';
+  try {
+    const response = await fetch(`/api/visits/export.xlsx?${filters}`);
+    if(!response.ok) { const error = await response.json(); throw new Error(error.error || 'Không xuất được báo cáo'); }
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob), link = document.createElement('a');
+    link.href = url; link.download = `gateview-luot-xe-${filters.get('start')}-${filters.get('end')}.xlsx`;
+    document.body.append(link); link.click(); link.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),60000);
+    if(version === requestVersion) $('message').textContent = 'Đã xuất báo cáo Excel gồm Tổng hợp, Chi tiết và Thông tin bộ lọc.';
+  } catch(error) {
+    if(version === requestVersion) $('message').textContent = error.message;
+  } finally {
+    exporting = false; $('export').textContent = 'Xuất báo cáo Excel';
+    if(version === requestVersion) $('export').disabled = !report;
+  }
 };
 fetch('/api/cameras').then(r=>r.json()).then(cameras=>{for(const id of ['camera','entry_camera','exit_camera']){for(const c of cameras){const option=element('option',`${c.name} (${c.code})`);option.value=c.id;$(id).append(option);}if(fromUrl.has(id)) $(id).value=fromUrl.get(id);}}).catch(()=>{}).finally(load);
