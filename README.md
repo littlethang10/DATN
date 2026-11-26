@@ -1,52 +1,52 @@
 <div align="center">
 
-# ?? GateView
+# 🚗 GateView
 
-### H? th?ng gi?m s?t xe ra v?o
+### Hệ thống giám sát xe ra vào
 
-Theo d?i camera, nh?n di?n bi?n s? v? qu?n l? l?ch s? ra v?o tr?n m?t giao di?n.
+Theo dõi camera, nhận diện biển số và quản lý lịch sử ra vào trên một giao diện.
 
-**Python** ? **Docker** ? **RTSP** ? **YOLO** ? **OCR** ? **ByteTrack**
+**Python** · **Docker** · **RTSP** · **YOLO** · **OCR** · **ByteTrack**
 
 </div>
 
 ---
 
-## T?ng quan
+## Tổng quan
 
-GateView k?t h?p giao di?n web, d?ch v? l?u tr? d? li?u v? b? x? l? nh?n di?n ?? h? tr? gi?m s?t ph??ng ti?n t?i c?ng. H? th?ng l?y h?nh ?nh t? camera RTSP, theo d?i ph??ng ti?n v? ghi nh?n th?ng tin ph?c v? tra c?u, th?ng k?.
+GateView kết hợp giao diện web, dịch vụ lưu trữ dữ liệu và bộ xử lý nhận diện để hỗ trợ giám sát phương tiện tại cổng. Hệ thống lấy hình ảnh từ camera RTSP, theo dõi phương tiện và ghi nhận thông tin phục vụ tra cứu, thống kê.
 
-### Ch?c n?ng ch?nh
+### Chức năng chính
 
-- ?? Qu?n l? camera ra/v?o v? xem lu?ng RTSP.
-- ?? C?u h?nh v?ng quan t?m (ROI) cho t?ng camera.
-- ?? Nh?n di?n ph??ng ti?n, ??c bi?n s? v? theo d?i ??i t??ng.
-- ?? Xem l?ch s? l??t xe, t?m ki?m v? ki?m tra th?ng tin nh?n di?n.
-- ?? Theo d?i th?ng k? v? xu?t b?o c?o Excel.
+- 📹 Quản lý camera ra/vào và xem luồng RTSP.
+- 🎯 Cấu hình vùng quan tâm (ROI) cho từng camera.
+- 🔎 Nhận diện phương tiện, đọc biển số và theo dõi đối tượng.
+- 🕘 Xem lịch sử lượt xe, tìm kiếm và kiểm tra thông tin nhận diện.
+- 📊 Theo dõi thống kê và xuất báo cáo Excel.
 
-## C?u tr?c d? ?n
+## Cấu trúc dự án
 
 ```text
-??? be/                 # Backend, x? l? nh?n di?n v? xu?t b?o c?o
-??? fe/                 # Giao di?n web v? c?u h?nh Nginx
-??? model/              # C?c m? h?nh nh?n di?n
-??? mediamtx/           # MediaMTX v? c?u h?nh lu?ng
-??? fast-plate-ocr/     # M? ngu?n OCR
-??? fast-plate-ocr-src/ # ?ng d?ng v? m? ngu?n OCR
-??? docs/               # T?i li?u v? ngu?n tham kh?o
-??? tracking.json       # C?u h?nh theo d?i
-??? compose.yaml        # C?u h?nh Docker Compose
+├── be/                 # Backend, xử lý nhận diện và xuất báo cáo
+├── fe/                 # Giao diện web và cấu hình Nginx
+├── model/              # Các mô hình nhận diện
+├── mediamtx/           # MediaMTX và cấu hình luồng
+├── fast-plate-ocr/     # Mã nguồn OCR
+├── fast-plate-ocr-src/ # Ứng dụng và mã nguồn OCR
+├── docs/               # Tài liệu và nguồn tham khảo
+├── tracking.json       # Cấu hình theo dõi
+└── compose.yaml        # Cấu hình Docker Compose
 ```
 
-## B?t ??u nhanh
+## Bắt đầu nhanh
 
-### Y?u c?u
+### Yêu cầu
 
-- [Git](https://git-scm.com/) v? [Git LFS](https://git-lfs.com/) ?? t?i ??y ?? c?c t?p m? h?nh.
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/) ho?c Docker Engine c? Docker Compose.
-- Camera c? lu?ng RTSP ho?c ngu?n video RTSP t??ng th?ch n?u mu?n xem camera.
+- [Git](https://git-scm.com/) và [Git LFS](https://git-lfs.com/) để tải đầy đủ các tệp mô hình.
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) hoặc Docker Engine có Docker Compose.
+- Camera có luồng RTSP hoặc nguồn video RTSP tương thích nếu muốn xem camera.
 
-### 1. T?i d? ?n
+### 1. Tải dự án
 
 ```bash
 git lfs install
@@ -55,44 +55,44 @@ cd DATN
 git lfs pull
 ```
 
-### 2. Kh?i ??ng giao di?n v? backend
+### 2. Khởi động giao diện và backend
 
 ```bash
 docker compose up -d --build
 ```
 
-M? **http://localhost:8080** trong tr?nh duy?t. D? li?u backend ???c l?u trong Docker volume `gateview-data`.
+Mở **http://localhost:8080** trong trình duyệt. Dữ liệu backend được lưu trong Docker volume `gateview-data`.
 
 ```bash
-# Xem tr?ng th?i v? nh?t k?
+# Xem trạng thái và nhật ký
 docker compose ps
 docker compose logs -f
 
-# D?ng c?c d?ch v?
+# Dừng các dịch vụ
 docker compose down
 ```
 
-### 3. Th?m camera
+### 3. Thêm camera
 
-Trong giao di?n, v?o m?c qu?n l? camera ?? th?m t?n, m? camera, chi?u xe v? ??a ch? RTSP. C?u h?nh ROI theo khu v?c c?n nh?n di?n. N?u ngu?n RTSP ch?y tr?n m?y c?i Docker, ??a ch? camera ph?i c? th? truy c?p t? container; tr?n Docker Desktop c? th? d?ng `host.docker.internal` thay cho `localhost` khi ph? h?p.
+Trong giao diện, vào mục quản lý camera để thêm tên, mã camera, chiều xe và địa chỉ RTSP. Cấu hình ROI theo khu vực cần nhận diện. Nếu nguồn RTSP chạy trên máy cài Docker, địa chỉ camera phải có thể truy cập từ container; trên Docker Desktop có thể dùng `host.docker.internal` thay cho `localhost` khi phù hợp.
 
-## Nh?n di?n t? ??ng
+## Nhận diện tự động
 
-Docker Compose kh?i ??ng **giao di?n v? backend**; b? x? l? nh?n di?n `be/recognize.py` ch?y ri?ng tr?n m?y ch?. B? x? l? s? d?ng m? h?nh `model/best_640x640.pt`, c?u h?nh `tracking.json` v? k?t n?i ??n ?ng d?ng t?i `http://127.0.0.1:8080`.
+Docker Compose khởi động **giao diện và backend**; bộ xử lý nhận diện `be/recognize.py` chạy riêng trên máy chủ. Bộ xử lý sử dụng mô hình `model/best_640x640.pt`, cấu hình `tracking.json` và kết nối đến ứng dụng tại `http://127.0.0.1:8080`.
 
-M? nh?n di?n c?n m?i tr??ng Python v?i OpenCV, PyTorch, NumPy, FastALPR v? Ultralytics; c?u h?nh hi?n t?i h??ng ??n GPU NVIDIA/CUDA. C?c ph? thu?c n?y kh?ng n?m trong `be/requirements.txt` c?a container backend v? c?n ???c c?i ri?ng ph? h?p v?i m?y. Xem th?m [h??ng d?n ?ng d?ng OCR](fast-plate-ocr-src/APP_README.md).
+Mã nhận diện cần môi trường Python với OpenCV, PyTorch, NumPy, FastALPR và Ultralytics; cấu hình hiện tại hướng đến GPU NVIDIA/CUDA. Các phụ thuộc này không nằm trong `be/requirements.txt` của container backend và cần được cài riêng phù hợp với máy. Xem thêm [hướng dẫn ứng dụng OCR](fast-plate-ocr-src/APP_README.md).
 
-## C?ng ngh?
+## Công nghệ
 
-| Th?nh ph?n | C?ng ngh? |
+| Thành phần | Công nghệ |
 | --- | --- |
-| Giao di?n | HTML, CSS, JavaScript, Nginx |
-| Backend v? d? li?u | Python, SQLite |
+| Giao diện | HTML, CSS, JavaScript, Nginx |
+| Backend và dữ liệu | Python, SQLite |
 | Video | RTSP, FFmpeg, MediaMTX |
-| Nh?n di?n v? theo d?i | YOLO, FastALPR, OCR, ByteTrack |
-| Tri?n khai | Docker Compose, Git LFS |
+| Nhận diện và theo dõi | YOLO, FastALPR, OCR, ByteTrack |
+| Triển khai | Docker Compose, Git LFS |
 
-## Tham kh?o
+## Tham khảo
 
 - [fast-plate-ocr](https://github.com/ankandrew/fast-plate-ocr)
 - [ByteTrack](https://github.com/FoundationVision/ByteTrack)
